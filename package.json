@@ -1,0 +1,19 @@
+{
+  "name": "google-review-system",
+  "version": "1.0.0",
+  "description": "QR-based star rating funnel: high ratings go to Google, low ratings go privately to the owner.",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "qr": "node scripts/qr.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4"
+  }
+}

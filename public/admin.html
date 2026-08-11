@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Feedback dashboard</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #fff;
+        --text: #1f2328;
+        --muted: #5f6672;
+        --border: #e3e6ea;
+        --brand: #1a73e8;
+        --star: #fbbc04;
+        --ok: #1e8e3e;
+        --bad: #c5221f;
+        --warn: #b06000;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #101215;
+          --surface: #1a1d21;
+          --text: #e8eaed;
+          --muted: #9aa1ab;
+          --border: #2c3036;
+          --ok: #81c995;
+          --bad: #f28b82;
+          --warn: #fdd663;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px 16px 64px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 24px;
+        font-size: 0.9rem;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      /* ── Login ── */
+      #login {
+        max-width: 380px;
+        margin: 10vh auto 0;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        padding: 11px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 16px;
+      }
+      button {
+        width: 100%;
+        margin-top: 12px;
+        padding: 12px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      /* ── Stats ── */
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .tile {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .tile .n {
+        font-size: 1.9rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+      .tile .k {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      /* ── Distribution ── */
+      .row {
+        display: grid;
+        grid-template-columns: 46px 1fr 40px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 7px;
+        font-size: 0.87rem;
+      }
+      .bar {
+        height: 9px;
+        background: var(--border);
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .bar span {
+        display: block;
+        height: 100%;
+        background: var(--star);
+        border-radius: 5px;
+      }
+      .row .c {
+        text-align: right;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      /* ── Feedback list ── */
+      h2 {
+        font-size: 1.05rem;
+        margin: 28px 0 12px;
+      }
+      .fb {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .fb-top {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .fb-stars {
+        color: var(--star);
+        letter-spacing: 2px;
+      }
+      .fb-msg {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0 0 10px;
+      }
+      .fb-contact {
+        font-size: 0.87rem;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid currentColor;
+      }
+      .badge.sent {
+        color: var(--ok);
+      }
+      .badge.failed {
+        color: var(--bad);
+      }
+      .badge.disabled,
+      .badge.pending {
+        color: var(--warn);
+      }
+      .empty {
+        color: var(--muted);
+        text-align: center;
+        padding: 32px 16px;
+      }
+      .err {
+        color: var(--bad);
+        font-size: 0.88rem;
+        margin-top: 10px;
+      }
+      .note {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <!-- ── Login ────────────────────────────────────────────────── -->
+      <div id="login" class="card">
+        <h1>Dashboard</h1>
+        <p class="sub">Enter your admin token to continue.</p>
+        <form id="login-form">
+          <label for="token">Admin token</label>
+          <input id="token" type="password" autocomplete="current-password" required />
+          <button type="submit">Sign in</button>
+          <p id="login-error" class="err" hidden></p>
+        </form>
+      </div>
+
+      <!-- ── Dashboard ────────────────────────────────────────────── -->
+      <div id="dash" hidden>
+        <h1>Feedback dashboard</h1>
+        <p class="sub" id="mode-line"></p>
+
+        <div class="tiles" id="tiles"></div>
+
+        <div class="card">
+          <strong style="font-size: 0.9rem">Rating breakdown</strong>
+          <div id="dist" style="margin-top: 12px"></div>
+        </div>
+
+        <h2>Private feedback</h2>
+        <div id="feedback"></div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        );
+
+      async function load(token) {
+        const res = await fetch('/api/admin/events', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) throw new Error('That token is not correct.');
+        if (!res.ok) throw new Error('Could not load the dashboard.');
+        return res.json();
+      }
+
+      function render(data) {
+        const { stats, feedback, config } = data;
+
+        $('mode-line').textContent =
+          `${config.threshold}★ and above go to Google · mode: ${config.reviewMode} · ` +
+          `WhatsApp: ${config.whatsappProvider === 'none' ? 'disabled' : 'Meta Cloud API'}`;
+
+        $('tiles').innerHTML = [
+          ['Total scans', stats.total],
+          ['Average', stats.total ? stats.average.toFixed(2) : '—'],
+          ['Sent to Google', stats.redirected],
+          ['Private', stats.private],
+        ]
+          .map(([k, n]) => `<div class="tile"><div class="n">${esc(n)}</div><div class="k">${esc(k)}</div></div>`)
+          .join('');
+
+        const max = Math.max(1, ...Object.values(stats.distribution));
+        $('dist').innerHTML = [5, 4, 3, 2, 1]
+          .map((star) => {
+            const count = stats.distribution[star] ?? 0;
+            const pct = (count / max) * 100;
+            return `<div class="row">
+              <span>${star} ★</span>
+              <span class="bar"><span style="width:${pct}%"></span></span>
+              <span class="c">${count}</span>
+            </div>`;
+          })
+          .join('');
+
+        if (!feedback.length) {
+          $('feedback').innerHTML =
+            '<div class="card empty">No private feedback yet. That is good news.</div>';
+          return;
+        }
+
+        $('feedback').innerHTML = feedback
+          .map((f) => {
+            const status = f.notified?.status ?? 'pending';
+            const label = { sent: 'WhatsApp sent', failed: 'WhatsApp failed', disabled: 'WhatsApp off', pending: 'sending…' }[status];
+            const when = new Date(f.ts).toLocaleString();
+            const stars = '★'.repeat(f.rating) + '☆'.repeat(5 - f.rating);
+
+            return `<div class="fb">
+              <div class="fb-top">
+                <span class="fb-stars">${stars}</span>
+                <span>${esc(when)}</span>
+                <span class="badge ${status}">${esc(label)}</span>
+              </div>
+              <p class="fb-msg">${esc(f.message)}</p>
+              ${f.contact ? `<div class="fb-contact">Contact: <strong>${esc(f.contact)}</strong></div>` : ''}
+              ${f.notified?.detail ? `<div class="note">${esc(f.notified.detail)}</div>` : ''}
+            </div>`;
+          })
+          .join('');
+      }
+
+      async function signIn(token) {
+        const data = await load(token);
+        sessionStorage.setItem('adminToken', token);
+        $('login').hidden = true;
+        $('dash').hidden = false;
+        render(data);
+      }
+
+      $('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('login-error').hidden = true;
+        try {
+          await signIn($('token').value);
+        } catch (err) {
+          $('login-error').textContent = err.message;
+          $('login-error').hidden = false;
+        }
+      });
+
+      // Resume an existing session without re-prompting.
+      const saved = sessionStorage.getItem('adminToken');
+      if (saved) signIn(saved).catch(() => sessionStorage.removeItem('adminToken'));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/
+public/qr.png
+public/qr.svg
+public/table-tent.html
+*.log
+.impeccable/

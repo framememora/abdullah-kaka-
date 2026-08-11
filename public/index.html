@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>Rate your visit</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+
+  <body>
+    <main id="app" class="screen-rate" aria-live="polite">
+      <!-- ── Screen 1: star rating ─────────────────────────────────── -->
+      <section class="card" data-screen="rate">
+        <!-- app.js inserts the shop logo here, only when SHOP_LOGO_URL is set -->
+        <h1 id="shop-name">&nbsp;</h1>
+        <p id="tagline" class="tagline">&nbsp;</p>
+
+        <div id="stars" class="stars" role="group" aria-label="Rate from 1 to 5 stars">
+          <!-- star buttons injected by app.js -->
+        </div>
+
+        <p class="hint">Tap a star to rate</p>
+      </section>
+
+      <!-- ── Screen 2: private feedback ────────────────────────────── -->
+      <section class="card" data-screen="feedback">
+        <div id="chosen-rating" class="chosen" aria-hidden="true"></div>
+        <h1>Sorry we let you down</h1>
+        <p class="tagline">
+          This goes straight to the owner — privately. Tell us what happened and we'll put it right.
+        </p>
+
+        <form id="feedback-form" novalidate>
+          <label class="field">
+            <span class="label-text">What went wrong?</span>
+            <textarea
+              id="message"
+              name="message"
+              rows="4"
+              maxlength="2000"
+              required
+              placeholder="The more detail, the better we can fix it."
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span class="label-text">Phone or email <em>(optional)</em></span>
+            <input
+              id="contact"
+              name="contact"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              placeholder="So we can follow up with you"
+            />
+          </label>
+
+          <p id="form-error" class="error" role="alert" hidden></p>
+
+          <button type="submit" id="submit-btn" class="btn-primary">Send privately</button>
+          <button type="button" id="back-btn" class="btn-text">Back</button>
+        </form>
+      </section>
+
+      <!-- ── Screen 3: thank you ───────────────────────────────────── -->
+      <section class="card" data-screen="thanks">
+        <div class="checkmark" aria-hidden="true">
+          <svg viewBox="0 0 52 52" width="72" height="72" fill="none" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" stroke="currentColor" stroke-width="2.5" opacity=".25" />
+            <path
+              d="M15 27l8 8 15-16"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+        <h1>Thank you</h1>
+        <p class="tagline">
+          Your feedback went straight to the owner. We read every message and we'll use it to do better.
+        </p>
+
+        <!-- Only rendered in REVIEW_MODE=compliant -->
+        <a id="google-link" class="btn-secondary" href="#" hidden rel="noopener">
+          Leave a public Google review too
+        </a>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
