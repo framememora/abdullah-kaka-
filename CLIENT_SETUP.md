@@ -26,10 +26,20 @@ repeatable steps.
 
 ## 2. Deploy a fresh instance
 
-Each client gets their own hosting instance (Railway, Render, Fly, a VPS —
-whichever you use) and their own subdomain or domain, e.g.
-`reviews.clientbusiness.com`. Do not point two clients at the same running
-process — there's nowhere in the code to separate their data.
+Each client gets their own deployment. Do not point two clients at the same
+instance — there's nowhere in the code to separate their data.
+
+**Default: the static deployment (`STATIC_SETUP.md`).** Their own repo, their
+own Apps Script web app, ₹0/month, no cold starts. Budget 20–30 minutes per
+client. Complaints go to whichever inbox you set as `OWNER_EMAIL`; nothing is
+stored, so there is no `/admin` and no rating history — say so explicitly when
+you sell it, because "show me my reviews" is the first thing a client asks.
+
+**Alternative: a Node host** (Railway, Render, Fly, a VPS) with their own
+subdomain, e.g. `reviews.clientbusiness.com`. Keeps `/admin` and the event log,
+but needs a **persistent disk** — `lib/store.js` writes a flat file, and the
+usual free tiers both wipe it on redeploy and sleep with a cold start too long
+for someone standing at a counter.
 
 ```bash
 git clone <this repo> client-<name>
@@ -79,9 +89,14 @@ print shop) to the client.
 
 ## 6. Hand off to the client
 
-Give them two things: their dashboard URL (`https://<their-domain>/admin`)
-and their `ADMIN_TOKEN`. Tell them, in these words: *"Go to that address,
-paste this into the 'Admin token' box like a password, click Sign in."*
-There's no username and no separate accounts — one shared token for the whole
-dashboard. It logs them out when they close the browser tab, so they'll paste
-it in again next time they check.
+**Static deployment.** There is no dashboard. Complaints arrive as email at
+`OWNER_EMAIL`, and that is the whole interface — tell them plainly that 4–5★
+taps are not recorded anywhere, so the system cannot report a rating count.
+Hand over the printed cards and the live URL.
+
+**Node deployment.** Give them two things: their dashboard URL
+(`https://<their-domain>/admin`) and their `ADMIN_TOKEN`. Tell them, in these
+words: *"Go to that address, paste this into the 'Admin token' box like a
+password, click Sign in."* There's no username and no separate accounts — one
+shared token for the whole dashboard. It logs them out when they close the
+browser tab, so they'll paste it in again next time they check.

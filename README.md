@@ -74,8 +74,25 @@ missing. A QR code already glued to a counter is much harder to fix than a boot 
 
 ### 4. Put it on the internet
 
-Customers' phones cannot reach `localhost`. Deploy to any host that runs Node (Railway,
-Render, Fly, a VPS), then set `PUBLIC_URL` in `.env` to the real HTTPS address.
+Customers' phones cannot reach `localhost`. There are two ways to deploy, and for a shop
+counter the first is the better one.
+
+**Static — GitHub Pages + Google Apps Script (₹0/month).** See `STATIC_SETUP.md`. The page
+is served as static files and a Google Apps Script web app emails you when someone is
+unhappy. Nothing sleeps, so there is no cold start; feedback is emailed and not stored, so
+there is no `/admin` dashboard and no record of ratings.
+
+```bash
+npm run build        # bakes config into docs/, which Pages serves
+```
+
+**Node host — Railway, Render, Fly, a VPS.** Runs `server.js` as written, keeping `/admin`
+and the event log. Note that this app stores everything in a flat file (`data/events.jsonl`),
+so it needs a host with a **persistent disk** — the usual free tiers have ephemeral
+filesystems that wipe the log on every redeploy, and they sleep with a 30–50s cold start
+that a customer standing at the counter will not wait through.
+
+Either way, set `PUBLIC_URL` in `.env` to the real HTTPS address before generating a QR.
 
 ### 5. Print the QR code
 
