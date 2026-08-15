@@ -1,9 +1,11 @@
-// Generates the counter QR code and a print-ready table tent.
+// Generates a counter QR code and a print-ready table tent.
 //
-//   npm run qr
+//   npm run qr                      the funnel card — encodes PUBLIC_URL
+//   npm run qr -- --google          the plain card — straight to the Google review page
+//   npm run qr -- --url <url> --out <name> --heading <text> --sub <text>
 //
-// Encodes PUBLIC_URL from .env — set that to the URL a customer's phone can
-// actually reach, not localhost, before printing anything.
+// Encodes a URL a customer's phone can actually reach — not localhost, not a LAN
+// address. The guard below refuses to run for either.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -15,7 +17,37 @@ import { config } from '../config.js';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, '..', 'public');
 
-const url = config.publicUrl;
+// ── Arguments ────────────────────────────────────────────────────────────────
+
+function arg(name, fallback = '') {
+  const i = process.argv.indexOf(`--${name}`);
+  return i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')
+    ? process.argv[i + 1]
+    : fallback;
+}
+
+const wantsGoogle = process.argv.includes('--google');
+
+// Two cards get printed: the funnel (scan → rate → split) and a plain one that
+// goes straight to Google, which keeps working even if the funnel is ever retired.
+const preset = wantsGoogle
+  ? {
+      url: config.googleReviewUrl,
+      out: 'google',
+      heading: 'Rate us on Google',
+      sub: 'Scan with your phone camera — it takes 5 seconds',
+    }
+  : {
+      url: config.publicUrl,
+      out: 'qr',
+      heading: 'How did we do?',
+      sub: 'Scan with your phone camera — it takes 5 seconds',
+    };
+
+const url = arg('url', preset.url);
+const outName = arg('out', preset.out);
+const heading = arg('heading', preset.heading);
+const sub = arg('sub', preset.sub);
 
 // High error correction: a counter QR gets smudged, scratched and partly covered
 // by a till roll. 'H' tolerates ~30% damage and still scans.
@@ -28,7 +60,7 @@ function escapeHtml(value) {
   );
 }
 
-function tableTent(shopName, brandColor, dataUri, target) {
+function tableTent(shopName, brandColor, dataUri, target, cta, subtitle) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -74,8 +106,8 @@ function tableTent(shopName, brandColor, dataUri, target) {
       <h1>${escapeHtml(shopName)}</h1>
       <div class="stars">★★★★★</div>
       <img class="qr" src="${dataUri}" alt="QR code linking to the rating page" />
-      <div class="cta">How did we do?</div>
-      <div class="sub">Scan with your phone camera — it takes 5 seconds</div>
+      <div class="cta">${escapeHtml(cta)}</div>
+      <div class="sub">${escapeHtml(subtitle)}</div>
       <div class="hint">${escapeHtml(target)}</div>
     </div>
   </body>
@@ -83,37 +115,69 @@ function tableTent(shopName, brandColor, dataUri, target) {
 `;
 }
 
+/**
+ * Addresses that resolve on the dev machine but nowhere a customer stands.
+ * A LAN IP is the exact mistake that produced the first unusable card, so this
+ * is a hard stop rather than a warning.
+ */
+function unreachableReason(target) {
+  let host;
+  try {
+    host = new URL(target).hostname;
+  } catch {
+    return `"${target}" is not a valid URL.`;
+  }
+
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+    return 'it points at localhost — only this machine can open it.';
+  }
+  if (host.endsWith('.local')) {
+    return 'a .local hostname only resolves on the same network.';
+  }
+  if (/^192\.168\./.test(host) || /^10\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
+    return `${host} is a private LAN address — it only works on the same wifi, and breaks when the IP changes.`;
+  }
+  return null;
+}
+
 async function main() {
-  if (/localhost|127\.0\.0\.1/.test(url)) {
-    console.warn(
-      '\n  ⚠  PUBLIC_URL is still a localhost address.\n' +
-        '     A QR code with this URL will not work on a customer phone.\n' +
-        '     Set PUBLIC_URL in .env to your real public address before printing.\n',
+  const reason = unreachableReason(url);
+  if (reason) {
+    console.error(
+      `\n  ✗ Refusing to generate a QR code for ${url}\n` +
+        `    ${reason}\n\n` +
+        '    A card printed with this address is dead the moment it leaves the shop.\n' +
+        '    Set PUBLIC_URL in .env to the live https:// address first.\n',
     );
+    process.exit(1);
   }
 
   await fs.mkdir(PUBLIC_DIR, { recursive: true });
 
-  const pngPath = path.join(PUBLIC_DIR, 'qr.png');
-  const svgPath = path.join(PUBLIC_DIR, 'qr.svg');
-  const tentPath = path.join(PUBLIC_DIR, 'table-tent.html');
+  const pngPath = path.join(PUBLIC_DIR, `${outName}.png`);
+  const svgPath = path.join(PUBLIC_DIR, `${outName}.svg`);
+  const tentPath = path.join(PUBLIC_DIR, `${outName}-table-tent.html`);
 
   await QRCode.toFile(pngPath, url, { ...OPTIONS, type: 'png', width: 1024 });
   await QRCode.toFile(svgPath, url, { ...OPTIONS, type: 'svg' });
 
   const dataUri = await QRCode.toDataURL(url, { ...OPTIONS, width: 900 });
-  await fs.writeFile(tentPath, tableTent(config.shop.name, config.shop.brandColor, dataUri, url), 'utf8');
+  await fs.writeFile(
+    tentPath,
+    tableTent(config.shop.name, config.shop.brandColor, dataUri, url, heading, sub),
+    'utf8',
+  );
 
   console.log(`
-  QR code generated.
+  ${wantsGoogle ? 'Plain Google card' : 'Funnel card'} generated.
 
   Encoded URL   ${url}
-                ^ scan-test this on a real phone before printing
+                ^ scan-test this on a real phone, on mobile data, before printing
 
-  qr.png        ${pngPath}
+  ${outName}.png${' '.repeat(Math.max(1, 12 - outName.length))}${pngPath}
                 1024px, high error correction — for digital use or a printer
 
-  qr.svg        ${svgPath}
+  ${outName}.svg${' '.repeat(Math.max(1, 12 - outName.length))}${svgPath}
                 vector — give this to a print shop for large formats
 
   table-tent    ${tentPath}

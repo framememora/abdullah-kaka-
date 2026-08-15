@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "qr": "node scripts/qr.js"
+    "build": "node scripts/build-static.js",
+    "qr": "node scripts/qr.js",
+    "qr:google": "node scripts/qr.js --google"
   },
   "dependencies": {
     "express": "^4.21.2",

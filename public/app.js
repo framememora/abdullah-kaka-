@@ -24,10 +24,18 @@ let selected = 0;
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 
+/* Two deployments share this file. The static build (GitHub Pages) bakes the config
+ * into the page as window.SHOP_CONFIG and has no server to ask; under server.js there
+ * is no baked config and /api/config answers instead. */
+async function loadConfig() {
+  if (window.SHOP_CONFIG) return window.SHOP_CONFIG;
+  const res = await fetch('/api/config');
+  return res.json();
+}
+
 async function boot() {
   try {
-    const res = await fetch('/api/config');
-    cfg = await res.json();
+    cfg = await loadConfig();
   } catch {
     // The page is useless without config; say so rather than showing dead stars.
     document.getElementById('shop-name').textContent = 'Unable to load';
@@ -111,18 +119,25 @@ function choose(rating) {
 }
 
 function logRating(rating) {
-  const body = JSON.stringify({ rating });
+  const body = JSON.stringify({ type: 'rating', rating });
+
+  // Cross-origin (Apps Script) must stay a CORS "simple request": it cannot answer a
+  // preflight, and a beacon that triggers one is dropped without a word.
+  const url = cfg.endpoint || '/api/rating';
+  const contentType = cfg.endpoint ? 'text/plain;charset=utf-8' : 'application/json';
+
   try {
-    const blob = new Blob([body], { type: 'application/json' });
-    if (navigator.sendBeacon('/api/rating', blob)) return;
+    const blob = new Blob([body], { type: contentType });
+    if (navigator.sendBeacon(url, blob)) return;
   } catch {
     // fall through to fetch
   }
-  fetch('/api/rating', {
+  fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': contentType },
     body,
     keepalive: true,
+    ...(cfg.endpoint ? { mode: 'no-cors' } : {}),
   }).catch(() => {});
 }
 
@@ -151,6 +166,52 @@ function hideError() {
   errorEl.hidden = true;
 }
 
+/**
+ * Post the feedback to whichever backend this build talks to.
+ * @returns {Promise<{ok: boolean, error?: string}>}
+ */
+async function submitFeedback(payload) {
+  if (!cfg.endpoint) {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok === true, error: data.error };
+  }
+
+  // Apps Script. text/plain avoids the preflight it cannot answer. Its /exec URL
+  // redirects to googleusercontent.com, which does send CORS headers, so the JSON
+  // reply is normally readable.
+  try {
+    const res = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload,
+      redirect: 'follow',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.error) return { ok: false, error: data.error };
+    return { ok: true };
+  } catch {
+    // The reply could not be read, but the write itself very likely landed. Send it
+    // once more opaquely, then accept it: telling a customer their complaint was lost
+    // when it wasn't is the worse failure.
+    try {
+      await fetch(cfg.endpoint, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload,
+      });
+    } catch {
+      // genuinely offline — handled by the navigator.onLine check in the caller
+    }
+    return { ok: true };
+  }
+}
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   hideError();
@@ -162,19 +223,27 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
+  // The opaque-request fallback in submitFeedback cannot tell "delivered" from
+  // "no signal", so catch the offline case here where it is still knowable.
+  if (navigator.onLine === false) {
+    showError('No connection. Please check your signal and try again.');
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Sending…';
 
   try {
-    const res = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rating: selected, message, contact: contactEl.value.trim() }),
+    const payload = JSON.stringify({
+      type: 'feedback',
+      rating: selected,
+      message,
+      contact: contactEl.value.trim(),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await submitFeedback(payload);
 
-    if (!res.ok || !data.ok) {
+    if (!data.ok) {
       showError(data.error || 'Something went wrong. Please try again.');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Send privately';
