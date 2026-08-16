@@ -43,14 +43,16 @@ const preset = wantsGoogle
   ? {
       url: config.googleReviewUrl,
       out: 'google',
-      heading: 'Rate us on Google',
-      sub: 'Scan with your phone camera — it takes 5 seconds',
+      // Sits directly under the code, so it reads as an instruction rather than
+      // a question -- the customer is already looking at the QR by then.
+      heading: 'Scan to rate us on Google',
+      sub: 'Point your phone camera — takes 5 seconds',
     }
   : {
       url: config.publicUrl,
       out: 'qr',
-      heading: 'How did we do?',
-      sub: 'Scan with your phone camera — it takes 5 seconds',
+      heading: 'Scan to rate us',
+      sub: 'Point your phone camera — takes 5 seconds',
     };
 
 const url = arg('url', preset.url);
@@ -75,7 +77,23 @@ function escapeHtml(value) {
   );
 }
 
+/**
+ * A5 counter card, built to be recognised rather than read.
+ *
+ * Two things are borrowed from the UPI standees every Indian counter already
+ * has, because a customer has learned what those mean:
+ *   - corner brackets framing the code, which say "point your camera here"
+ *     without needing a language;
+ *   - the code on a white panel, never on the colour. That keeps black-on-white
+ *     contrast whatever the brand colour is, and contrast is what decides
+ *     whether a printed code scans at all.
+ *
+ * The code prints at 74mm against a ~25mm minimum, so it reads at arm's length
+ * across a counter instead of making someone lean in.
+ */
 function tableTent(shopName, brandColor, dataUri, target, cta, subtitle) {
+  const displayTarget = target.replace(/^https?:\/\//, '');
+
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -84,46 +102,81 @@ function tableTent(shopName, brandColor, dataUri, target, cta, subtitle) {
     <style>
       @page { size: A5; margin: 0; }
       * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
       body {
-        margin: 0;
         font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
         background: #eceff3;
         display: grid;
         place-items: center;
         min-height: 100vh;
       }
-      .tent {
+      .card {
         width: 148mm;
         height: 210mm;
-        background: #fff;
+        background: #14161a;
+        color: #fff;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         text-align: center;
-        padding: 16mm 12mm;
-        border-top: 10mm solid ${escapeHtml(brandColor)};
+        padding: 14mm 10mm 10mm;
       }
-      h1 { font-size: 30pt; margin: 0 0 3mm; letter-spacing: -0.02em; }
-      .stars { font-size: 26pt; color: #fbbc04; letter-spacing: 5px; margin-bottom: 8mm; }
-      .qr { width: 82mm; height: 82mm; }
-      .cta { font-size: 19pt; font-weight: 600; margin-top: 8mm; }
-      .sub { font-size: 12pt; color: #5f6672; margin-top: 2mm; }
-      .hint { font-size: 8pt; color: #9aa1ab; margin-top: 10mm; word-break: break-all; }
+      .kicker {
+        font-size: 9pt; letter-spacing: .32em; text-transform: uppercase;
+        color: #fbbc04; margin-bottom: 4mm;
+      }
+      .name { font-size: 26pt; font-weight: 700; letter-spacing: .01em; line-height: 1.05; }
+      .stars { font-size: 14pt; color: #fbbc04; letter-spacing: 4px; margin-top: 4mm; }
+      .panel {
+        background: #fff;
+        border-radius: 4mm;
+        padding: 7mm;
+      }
+      /* Bracket corners drawn from the panel, so they never overlap the code's
+         quiet zone -- covering that is a common way to make a card unscannable. */
+      .frame { position: relative; padding: 4mm; }
+      .frame::before, .frame::after, .frame > i {
+        content: ''; position: absolute; width: 9mm; height: 9mm;
+        border: 1.6mm solid #14161a;
+      }
+      .frame::before { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 3mm 0 0 0; }
+      .frame::after { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 3mm 0 0; }
+      .frame > i.bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 3mm; }
+      .frame > i.br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 3mm 0; }
+      .qr { display: block; width: 74mm; height: 74mm; }
+      .cta { font-size: 20pt; font-weight: 700; }
+      .sub { font-size: 11pt; color: #a7adb8; margin-top: 2mm; }
+      .foot { font-size: 8pt; color: #6d747f; letter-spacing: .04em; }
       @media print {
-        body { background: #fff; min-height: 0; }
-        .tent { border-top-color: ${escapeHtml(brandColor)}; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { background: #fff; min-height: 0; display: block; }
+        /* Without this the browser helpfully drops the background to save ink,
+           and the card prints as white with white text on it. */
+        .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       }
     </style>
   </head>
   <body>
-    <div class="tent">
-      <h1>${escapeHtml(shopName)}</h1>
-      <div class="stars">★★★★★</div>
-      <img class="qr" src="${dataUri}" alt="QR code linking to the rating page" />
-      <div class="cta">${escapeHtml(cta)}</div>
-      <div class="sub">${escapeHtml(subtitle)}</div>
-      <div class="hint">${escapeHtml(target)}</div>
+    <div class="card">
+      <div>
+        <div class="kicker">Tell us how we did</div>
+        <div class="name">${escapeHtml(shopName)}</div>
+        <div class="stars">★★★★★</div>
+      </div>
+
+      <div class="panel">
+        <div class="frame"><i class="bl"></i><i class="br"></i>
+          <img class="qr" src="${dataUri}" alt="QR code linking to ${escapeHtml(displayTarget)}" />
+        </div>
+      </div>
+
+      <div>
+        <div class="cta">${escapeHtml(cta)}</div>
+        <div class="sub">${escapeHtml(subtitle)}</div>
+      </div>
+
+      <div class="foot">${escapeHtml(displayTarget)}</div>
     </div>
   </body>
 </html>

@@ -55,7 +55,10 @@ export async function buildSymbol(url) {
   return { size, total, centre, badgeRadius, starRadius, isDark };
 }
 
-export async function toSvg(url, { dark = '#000000', light = '#ffffff', badge = true } = {}) {
+export async function toSvg(
+  url,
+  { dark = '#000000', light = '#ffffff', star: starColour = '#fbbc04', badge = true } = {},
+) {
   const { size, total, centre, badgeRadius, starRadius, isDark } = await buildSymbol(url);
 
   // One path for every dark module beats one <rect> each: a 57-module symbol is
@@ -76,7 +79,7 @@ export async function toSvg(url, { dark = '#000000', light = '#ffffff', badge = 
     ? `
   <circle cx="${centre}" cy="${centre}" r="${badgeRadius.toFixed(3)}" fill="${light}"/>
   <circle cx="${centre}" cy="${centre}" r="${(badgeRadius * 0.86).toFixed(3)}" fill="${dark}"/>
-  <polygon points="${star}" fill="${light}"/>`
+  <polygon points="${star}" fill="${starColour}"/>`
     : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" role="img" aria-label="QR code">
@@ -96,7 +99,10 @@ function hexToRgb(hex) {
   ];
 }
 
-export async function toPngBuffer(url, { dark = '#000000', light = '#ffffff', width = 1024, badge = true } = {}) {
+export async function toPngBuffer(
+  url,
+  { dark = '#000000', light = '#ffffff', star: starColour = '#fbbc04', width = 1024, badge = true } = {},
+) {
   const { total, centre, badgeRadius, starRadius, isDark } = await buildSymbol(url);
 
   // Snap to a whole number of pixels per module. A fractional scale produces
@@ -105,8 +111,9 @@ export async function toPngBuffer(url, { dark = '#000000', light = '#ffffff', wi
   const scale = Math.max(1, Math.floor(width / total));
   const px = total * scale;
 
-  const [dr, dg, db] = hexToRgb(dark);
-  const [lr, lg, lb] = hexToRgb(light);
+  const darkRgb = hexToRgb(dark);
+  const lightRgb = hexToRgb(light);
+  const starRgb = hexToRgb(starColour);
 
   const png = new PNG({ width: px, height: px });
   const star = starPoints(centre * scale, centre * scale, starRadius * scale);
@@ -121,26 +128,28 @@ export async function toPngBuffer(url, { dark = '#000000', light = '#ffffff', wi
 
       const moduleCol = Math.floor(x / scale) - QUIET_ZONE;
       const moduleRow = Math.floor(y / scale) - QUIET_ZONE;
-      let on =
+      const on =
         moduleRow >= 0 &&
         moduleCol >= 0 &&
         moduleRow < total - QUIET_ZONE * 2 &&
         moduleCol < total - QUIET_ZONE * 2 &&
         isDark(moduleRow, moduleCol);
 
+      let rgb = on ? darkRgb : lightRgb;
+
       if (badge) {
         // Sample at the pixel centre so the circle edge lands where the SVG puts it.
         const dx = x + 0.5 - cx;
         const dy = y + 0.5 - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist <= badgeR) on = false;
-        if (dist <= ringR) on = true;
-        if (pointInPolygon(x + 0.5, y + 0.5, star)) on = false;
+        if (dist <= badgeR) rgb = lightRgb;
+        if (dist <= ringR) rgb = darkRgb;
+        if (pointInPolygon(x + 0.5, y + 0.5, star)) rgb = starRgb;
       }
 
-      png.data[idx] = on ? dr : lr;
-      png.data[idx + 1] = on ? dg : lg;
-      png.data[idx + 2] = on ? db : lb;
+      png.data[idx] = rgb[0];
+      png.data[idx + 1] = rgb[1];
+      png.data[idx + 2] = rgb[2];
       png.data[idx + 3] = 255;
     }
   }
