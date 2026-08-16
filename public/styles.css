@@ -1,7 +1,16 @@
 /* Mobile-first. This page is only ever seen on a phone, held one-handed,
    often in bad lighting, by someone who wants to be done in five seconds. */
 
+/* Light on every device, deliberately. This page follows a printed card into a
+   shop, so it should look the same to every customer regardless of the phone's
+   own dark-mode setting -- one page, one appearance, matching the card.
+
+   color-scheme is the half people forget: without it a dark-mode phone still
+   paints the textarea, the caret and the scrollbar in its dark UA colours, and
+   the feedback form ends up dark grey inside a white card. */
 :root {
+  color-scheme: light;
+
   --brand: #1a73e8;
   --star: #fbbc04;
   --star-empty: #dadce0;
@@ -15,19 +24,6 @@
 
   --radius: 18px;
   --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 8px 28px rgb(0 0 0 / 8%);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #101215;
-    --surface: #1a1d21;
-    --text: #e8eaed;
-    --text-muted: #9aa1ab;
-    --border: #2c3036;
-    --star-empty: #3c4149;
-    --danger: #f28b82;
-    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 28px rgb(0 0 0 / 45%);
-  }
 }
 
 * {
