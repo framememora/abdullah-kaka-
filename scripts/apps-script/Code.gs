@@ -20,7 +20,7 @@
 // ── Settings ────────────────────────────────────────────────────────────────
 // Keep OWNER_EMAIL and REDIRECT_THRESHOLD in step with .env.
 
-var OWNER_EMAIL = 'usmannissam1@gmail.com';
+var OWNER_EMAIL = 'abdullakhana633@gmail.com';
 var SHOP_NAME = 'Variety Fancy';
 var REDIRECT_THRESHOLD = 4; // ratings at or above this go to Google, never here
 
