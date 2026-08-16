@@ -374,7 +374,9 @@ input::placeholder {
 .handoff-mark svg {
   margin: 0 auto;
   display: block;
-  animation: pop 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  /* Ease-out-expo: arrives fast and settles, no overshoot. The card's "rise"
+     uses the same non-bouncing family — one motion language, not two. */
+  animation: pop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* A filling bar rather than a spinner: it says "this ends by itself, shortly",
