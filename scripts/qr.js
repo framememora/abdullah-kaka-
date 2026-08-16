@@ -10,9 +10,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import QRCode from 'qrcode';
+import jsQR from 'jsqr';
+import { PNG } from 'pngjs';
 
 import { config } from '../config.js';
+import { toSvg, toPngBuffer } from './qr-render.js';
+
+/** Read a rendered PNG back and return the URL it actually encodes, or null. */
+function decodePng(buffer) {
+  const png = PNG.sync.read(buffer);
+  const result = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
+  return result ? result.data : null;
+}
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, '..', 'public');
@@ -50,8 +59,14 @@ const heading = arg('heading', preset.heading);
 const sub = arg('sub', preset.sub);
 
 // High error correction: a counter QR gets smudged, scratched and partly covered
-// by a till roll. 'H' tolerates ~30% damage and still scans.
-const OPTIONS = { errorCorrectionLevel: 'H', margin: 2, color: { dark: '#000000', light: '#ffffff' } };
+// by a till roll. 'H' tolerates ~30% damage and still scans -- which is also what
+// makes the centre badge in qr-render.js safe.
+//
+// Black on white deliberately, not the brand colour: these get printed on
+// whatever the local shop has, and a light-running inkjet costs contrast the
+// scanner needs. The badge is free; the colour would not be.
+const DARK = '#000000';
+const LIGHT = '#ffffff';
 
 function escapeHtml(value) {
   return String(value).replace(
@@ -158,10 +173,23 @@ async function main() {
   const svgPath = path.join(PUBLIC_DIR, `${outName}.svg`);
   const tentPath = path.join(PUBLIC_DIR, `${outName}-table-tent.html`);
 
-  await QRCode.toFile(pngPath, url, { ...OPTIONS, type: 'png', width: 1024 });
-  await QRCode.toFile(svgPath, url, { ...OPTIONS, type: 'svg' });
+  const style = { dark: DARK, light: LIGHT, badge: true };
 
-  const dataUri = await QRCode.toDataURL(url, { ...OPTIONS, width: 900 });
+  const pngBuffer = await toPngBuffer(url, { ...style, width: 1024 });
+  await fs.writeFile(pngPath, pngBuffer);
+  await fs.writeFile(svgPath, await toSvg(url, style), 'utf8');
+
+  // Read the finished pixels back and confirm they still carry the right URL.
+  // A badge that quietly broke the symbol would otherwise only surface after a
+  // stack of cards had been printed.
+  const decoded = decodePng(pngBuffer);
+  if (decoded !== url) {
+    throw new Error(
+      `the generated code decodes to ${decoded ? `"${decoded}"` : 'nothing'}, not "${url}" — refusing to write an unscannable card`,
+    );
+  }
+
+  const dataUri = `data:image/png;base64,${pngBuffer.toString('base64')}`;
   await fs.writeFile(
     tentPath,
     tableTent(config.shop.name, config.shop.brandColor, dataUri, url, heading, sub),

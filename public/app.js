@@ -1,9 +1,13 @@
 /* Customer-facing rating flow.
  *
- * The one critical detail in this file: when a customer taps a high rating we
- * assign location.href *synchronously inside the tap handler*. No await, no
- * setTimeout, no animation first — mobile Safari only treats navigation as
- * user-initiated within the gesture, and anything else risks being swallowed. */
+ * A high rating used to assign location.href *synchronously inside the tap
+ * handler*, because mobile Safari only treats navigation as user-initiated
+ * within the gesture and anything later risks being swallowed. The branded
+ * hand-off screen breaks that rule on purpose, so it carries its own belt and
+ * braces: a real <a href> the customer can tap, and the whole card wired as a
+ * tap target. Top-level same-tab navigation from a timer is normally allowed
+ * (the strict gesture rule bites window.open), but if it is ever swallowed the
+ * customer still sees an obvious way forward rather than a dead end. */
 
 const app = document.getElementById('app');
 const starsEl = document.getElementById('stars');
@@ -15,6 +19,8 @@ const backBtn = document.getElementById('back-btn');
 const errorEl = document.getElementById('form-error');
 const chosenEl = document.getElementById('chosen-rating');
 const googleLink = document.getElementById('google-link');
+const redirectLinkEl = document.getElementById('redirect-link');
+const redirectCardEl = document.getElementById('redirect-card');
 
 const STAR_PATH =
   'M12 2.2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.27l-5.9 3.1 1.13-6.57L2.45 9.14l6.6-.96L12 2.2z';
@@ -106,9 +112,9 @@ function choose(rating) {
 
   if (rating >= cfg.threshold) {
     // Log the tap without blocking: sendBeacon survives the page teardown that
-    // the navigation on the next line is about to cause.
+    // the navigation below is about to cause.
     logRating(rating);
-    window.location.href = cfg.googleReviewUrl;
+    handOffToGoogle();
     return;
   }
 
@@ -116,6 +122,30 @@ function choose(rating) {
   logRating(rating);
   show('feedback');
   messageEl.focus();
+}
+
+/**
+ * Show a brief branded screen, then forward to the Google review page.
+ *
+ * The pause buys the shop a moment of its own instead of the tap reading as an
+ * abrupt jump to Google. It is deliberately short — every extra beat between the
+ * tap and the review form costs completions.
+ */
+const HANDOFF_MS = 1200;
+
+function handOffToGoogle() {
+  // A real href, not just a timer: if the tab is backgrounded the timer is
+  // throttled, and a customer must never be stranded looking at this screen with
+  // no way forward.
+  redirectLinkEl.href = cfg.googleReviewUrl;
+  redirectCardEl.addEventListener('click', () => {
+    window.location.href = cfg.googleReviewUrl;
+  });
+  show('redirect');
+
+  window.setTimeout(() => {
+    window.location.href = cfg.googleReviewUrl;
+  }, HANDOFF_MS);
 }
 
 function logRating(rating) {

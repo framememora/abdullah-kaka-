@@ -23,6 +23,23 @@
         <p class="hint">Tap a star to rate</p>
       </section>
 
+      <!-- ── Screen 1b: hand-off to Google ─────────────────────────── -->
+      <!-- The link is the fallback if the auto-forward is ever swallowed, so it
+           is a real anchor and the whole card is a tap target. -->
+      <section class="card card-redirect" id="redirect-card" data-screen="redirect">
+        <div class="handoff-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="64" height="64" fill="currentColor">
+            <path
+              d="M12 2.2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.27l-5.9 3.1 1.13-6.57L2.45 9.14l6.6-.96L12 2.2z"
+            />
+          </svg>
+        </div>
+        <h1>Thank you!</h1>
+        <p class="tagline">Taking you to Google to leave your review&hellip;</p>
+        <div class="handoff-bar" aria-hidden="true"><span></span></div>
+        <a id="redirect-link" class="btn-secondary" href="#" rel="noopener">Go now</a>
+      </section>
+
       <!-- ── Screen 2: private feedback ────────────────────────────── -->
       <section class="card" data-screen="feedback">
         <div id="chosen-rating" class="chosen" aria-hidden="true"></div>
