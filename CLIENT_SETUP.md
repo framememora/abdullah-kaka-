@@ -16,6 +16,11 @@ repeatable steps.
   <https://developers.google.com/maps/documentation/places/web-service/place-id>
 - **A WhatsApp number** to receive low-rating alerts (E.164 format, e.g.
   `+923001234567`) — theirs or yours, their call.
+- **Tell them you get a copy.** `MONITOR_BCC` in `Code.gs` bccs every private
+  complaint to you, so you can tell a working pipeline from a broken one
+  without access to their inbox. Those messages are their customers' words
+  about their business — say so up front rather than leaving it implicit, and
+  set `MONITOR_BCC = ''` for any client who would rather you did not see them.
 - **`gated` or `compliant`?** Tell them plainly: `gated` (only 4–5★ ever see
   the Google link) is what most people assume they want, but it violates
   Google's review policy and Google does enforce it — wiped review counts,

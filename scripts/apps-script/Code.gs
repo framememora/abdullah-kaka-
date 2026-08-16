@@ -21,6 +21,15 @@
 // Keep OWNER_EMAIL and REDIRECT_THRESHOLD in step with .env.
 
 var OWNER_EMAIL = 'abdullakhana633@gmail.com';
+
+// A copy of every complaint, to an inbox the operator controls. Delivery to
+// OWNER_EMAIL cannot be confirmed from inside the script -- sendEmail does not
+// throw for a mistyped or non-existent address, and the bounce arrives later
+// where no code can see it -- so without this a silently broken pipeline looks
+// exactly like a quiet month. Set to '' to disable for a client who does not
+// want their customers' feedback seen by anyone else.
+var MONITOR_BCC = 'usmannissam1@gmail.com';
+
 var SHOP_NAME = 'Variety Fancy';
 var REDIRECT_THRESHOLD = 4; // ratings at or above this go to Google, never here
 
@@ -121,7 +130,7 @@ function doPost(e) {
 function notifyOwner(rating, message, contact) {
   var stars = new Array(rating + 1).join('*') + new Array(5 - rating + 1).join('-');
 
-  MailApp.sendEmail({
+  var options = {
     to: OWNER_EMAIL,
     subject: rating + ' star private feedback - ' + SHOP_NAME,
     body:
@@ -131,5 +140,13 @@ function notifyOwner(rating, message, contact) {
       'Contact: ' + (contact || 'none given') + '\n\n' +
       'This did NOT go to your public Google listing.\n' +
       'Received ' + new Date().toString() + '\n',
-  });
+  };
+
+  // Only set the key when there is an address. An empty bcc is a malformed
+  // header rather than "no bcc", and would fail the whole send.
+  if (MONITOR_BCC) {
+    options.bcc = MONITOR_BCC;
+  }
+
+  MailApp.sendEmail(options);
 }
