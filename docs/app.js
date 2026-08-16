@@ -21,6 +21,7 @@ const chosenEl = document.getElementById('chosen-rating');
 const googleLink = document.getElementById('google-link');
 const redirectLinkEl = document.getElementById('redirect-link');
 const redirectCardEl = document.getElementById('redirect-card');
+const storefrontEl = document.getElementById('storefront');
 
 const STAR_PATH =
   'M12 2.2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.27l-5.9 3.1 1.13-6.57L2.45 9.14l6.6-.96L12 2.2z';
@@ -72,8 +73,14 @@ function applyBranding() {
     img.className = 'logo';
     img.src = cfg.logoUrl;
     img.alt = cfg.shopName;
-    // If the URL is wrong, drop the element rather than leaving a broken icon.
-    img.addEventListener('error', () => img.remove());
+    // If the URL is wrong, drop the element and put the illustration back rather
+    // than leaving a broken icon.
+    img.addEventListener('error', () => {
+      img.remove();
+      storefrontEl?.removeAttribute('hidden');
+    });
+    // A real photo of the shop beats a drawing of one, so the placeholder goes.
+    storefrontEl?.setAttribute('hidden', '');
     document.querySelector('[data-screen="rate"]').prepend(img);
   }
 }
