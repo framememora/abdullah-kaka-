@@ -22,13 +22,16 @@
 
 var OWNER_EMAIL = 'abdullakhana633@gmail.com';
 
-// A copy of every complaint, to an inbox the operator controls. Delivery to
+// Optional copy of every complaint, to an inbox the operator controls. Off for
+// this client: the feedback is their customers' words about their business and
+// goes to them alone.
+//
+// The tradeoff to know when re-enabling for someone else: delivery to
 // OWNER_EMAIL cannot be confirmed from inside the script -- sendEmail does not
-// throw for a mistyped or non-existent address, and the bounce arrives later
-// where no code can see it -- so without this a silently broken pipeline looks
-// exactly like a quiet month. Set to '' to disable for a client who does not
-// want their customers' feedback seen by anyone else.
-var MONITOR_BCC = 'usmannissam1@gmail.com';
+// throw for a mistyped or non-existent address, and the bounce lands in the
+// SENDING account's inbox where no code can see it. With this empty, a silently
+// broken pipeline looks exactly like a quiet month.
+var MONITOR_BCC = '';
 
 var SHOP_NAME = 'Variety Fancy';
 var REDIRECT_THRESHOLD = 4; // ratings at or above this go to Google, never here
